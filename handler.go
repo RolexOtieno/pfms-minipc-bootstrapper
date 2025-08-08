@@ -1,15 +1,24 @@
+/*
+Handles logic when a MiniPC sends a download request to /init
+Parses the JSON request (deviceId, os, version).
+Checks if the MiniPC is authorized.
+Responds with either:
+
+	    A download URL (if authorized).
+		An error message (if unauthorized).
+*/
 package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
 // MiniPC request payload
 type InitRequest struct {
-	DeviceID string `json:"deviceId"`
-	OS       string `json:"os"`
-	Version  string `json:"version"`
+	Name      string `json:"name"`
+	publicKey string `json:"publicKey"`
 }
 
 // Server response
@@ -29,22 +38,39 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	var req InitRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
+		log.Println("❌ Error decoding JSON:", err)
 		http.Error(w, "Invalid JSON request", http.StatusBadRequest)
 		return
 	}
 
-	if !IsAuthorizedDevice(req.DeviceID) {
+	log.Println(" Incoming request: Name=%s, Publickey length=%d", req.Name, len(req.publicKey))
+
+	//Save if new
+	_, err = SaveClient(req.Name, req.publicKey)
+	if err != nil {
+		log.Println("❌Error saving client:", err)
+		http.Error(w, "Server errror", http.StatusInternalServerError)
+		return
+	}
+
+	if !IsClientAuthorized(req.publicKey) {
+		log.Println("🔒 Unauthorized access attept:", req.Name)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(InitResponse{
-			Status:  "unauthorized",
-			Message: "Device not recognized",
+			Status:  "❌unauthorized",
+			Message: "Device not recognized or not authenticated yet",
 		})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(InitResponse{
-		Status:      "authorized",
+		Status:      "✅authorized",
 		DownloadURL: "http://localhost:8080/files/linux-installer-v1.0.0.sh",
 	})
 }
+
+//  /files/
+/*  Directory that stores actual install scripts or software packages.
+When the MiniPC is authorized, the backend sends a download link that points here.
+Static file serving happens from this folder.*/

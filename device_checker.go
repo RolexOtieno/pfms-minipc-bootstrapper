@@ -1,3 +1,9 @@
+/*
+	Validates if the MiniPC making the request is on the allowed list.
+
+Maintains a list of authorized MiniPC deviceIds.
+Returns true or false based on the ID.
+*/
 package main
 
 // IsAuthorizedDevice checks if the device is in the allowlist

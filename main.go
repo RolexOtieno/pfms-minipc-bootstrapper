@@ -1,5 +1,13 @@
-//starting the server
+/*
+This is the entry point of my application
 
+	starting the server
+
+regirters route handlers
+
+	/init- For miniPC requests
+	/files/-to serve installer files from disk
+*/
 package main
 
 import (
@@ -8,6 +16,8 @@ import (
 )
 
 func main() {
+	InitDB()
+
 	// Handle /init for download validation
 	http.HandleFunc("/init", InitHandler)
 
